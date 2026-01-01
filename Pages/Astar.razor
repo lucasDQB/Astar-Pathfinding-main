@@ -1,0 +1,98 @@
+@page "/astar"
+
+@using BlazorAppAstar.Models
+@using BlazorAppAstar.Algorithm
+@inject AStarService AStar
+
+<h3>A* Pathfinding Visualizer</h3>
+
+<div class="controls">
+    <button @onclick="ResetGrid">Reset Grid</button>
+    <button @onclick="RunAStar">Run A*</button>
+</div>
+
+<div class="grid">
+    @for (int r = 0; r < Rows; r++)
+    {
+        <div class="row">
+            @for (int c = 0; c < Cols; c++)
+            {
+                var node = Grid[r, c];
+                <div class="cell @GetCss(node)"
+                     @onclick="() => OnCellClick(node)">
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private const int Rows = 20;
+    private const int Cols = 40;
+
+    private PathNode[,] Grid = new PathNode[Rows, Cols];
+
+    protected override void OnInitialized()
+    {
+        InitializeGrid();
+    }
+
+    private void InitializeGrid()
+    {
+        for (int r = 0; r < Rows; r++)
+        {
+            for (int c = 0; c < Cols; c++)
+            {
+                Grid[r, c] = new PathNode
+                {
+                    Row = r,
+                    Col = c,
+                    IsStart = (r == 10 && c == 5),
+                    IsEnd = (r == 10 && c == 30)
+                };
+            }
+        }
+    }
+
+    private void ResetGrid()
+    {
+        InitializeGrid();
+    }
+
+    private void RunAStar()
+    {
+        var start = Grid.Cast<PathNode>().First(n => n.IsStart);
+        var end = Grid.Cast<PathNode>().First(n => n.IsEnd);
+
+        // Reset previous path data
+        foreach (var n in Grid)
+        {
+            n.IsPath = false;
+            n.Previous = null;
+            n.GCost = int.MaxValue;
+            n.HCost = 0;
+        }
+
+        var path = AStar.RunAStar(Grid, start, end);
+
+        foreach (var node in path)
+            node.IsPath = true;
+    }
+
+    private void OnCellClick(PathNode node)
+    {
+        if (!node.IsStart && !node.IsEnd)
+        {
+            node.IsWall = !node.IsWall;
+        }
+    }
+
+    private string GetCss(PathNode n)
+    {
+        if (n.IsStart) return "start";
+        if (n.IsEnd) return "end";
+        if (n.IsWall) return "wall";
+        if (n.IsPath) return "path";
+        return "";
+    }
+}
